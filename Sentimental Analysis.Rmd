@@ -1,0 +1,222 @@
+---
+title: MA331-Coursework
+subtitle: Text analytics of the TED talks by Juan Enriquez and Uldus Bakhtiozina 
+author: 211141-Juliet-Nnajiaku
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE}
+### Don't delete this setup code chunk from your file
+knitr::opts_chunk$set(echo = FALSE, comment = NA, message = FALSE, warning = FALSE)   ## DON'T ALTER THIS: this is to prevent printing the code in your "html" file.
+
+# list of packages used for this project.
+#===============================================================================
+library(dsEssex)
+library(tidyverse)
+library(dplyr)
+library(tidytext)
+library(tidyverse)
+library(dsEssex)
+library(ggrepel)
+library(ggplot2)
+
+# load the 'ted_talks' data
+#=========================
+data(ted_talks)
+```
+
+## <span style="color: blue;">**INTRODUCTION.**</span>
+
+
+
+This report involves analysis of two (2) **Juan Enriquez and Uldus Bakhtiozina**  TED speakers in five(5) talks. Uldus Bakhtiozina gave her talks  **wry photos that transforms people into whatever they want to be** in March 2014 and **protraits thet transforms people into whatever they want to be** in April 2017. Uduls is a Russian artist who makes  intrigue portraits of people. she uses art to challenge stereotypes and creates diversity, works with models and ordinary people to create imaginations. She holds the opinion that art does not have to involve numbers for it to hold a theory. she does her paintings without  the use of any technological filters to achieve authentic paintings.
+
+The other speaker  on the other hand,Juan Enriquez spoke on the the topics **Your online life, a permanent tattoo** in February 2013, **The next species of human**  February 2013,  **The  life code that will reshape the future**in February 2003. Juan is an American scientist. In his talks, he spoke about the positive impact of artificial intelligent  and technology in the world. He spoke extensively on how these new discoveries in technology not only changes the future in areas of health, where new parts of the body can be made to grow, new species of plants and animals can be created  in labs. And how the future will be so different because while the advancement in technology increases the people of that era will advance in intelligence.
+
+
+
+## <span style="color: blue;">**Methods.**</span>
+
+The following methodology was adopted to analyse this data, which includes;
+
+-Loading of data 
+-Tokenization of words
+-Tidying and filtering
+-Sentimental analysis 
+-Calculating the odds ratio. 
+
+
+
+
+## <span style="color: blue;">**Results**</span>
+
+
+
+**Glimpse of the structure of the data**
+
+This steps involves showing the structure of the data, the various speakers and attributes of the data. 
+
+```{r, echo=FALSE}
+glimpse(ted_talks) # to see the structure of my data
+```
+
+
+
+**Filtering and visualization of top words for each speaker**
+
+This step involves tokenize the words, filtering of **laughter and stop words**, and other speakers from my data leaving just the assigned speakers of the **TED_TALKS**. I  went further to  visualize top words for each speaker. As seen in fig 1 & 2 below.Plotting words on the "x-axis" and number of words on the "y-axis" With words like can, like, going, stuff, little seen as top words for Juan while words like art,like, life, work are frequent for Uldus. 
+
+
+```{r, echo=FALSE}
+#  removing laughter feom my data
+remove_laughter <- ted_talks %>%
+   unnest_tokens(word, text) %>%
+  filter(word == "laughter")
+
+mydata_talks<- ted_talks %>%         
+  unnest_tokens(word, text) %>%  # breakdown  words in the ted-talk data to appear in single   rows
+  anti_join(get_stopwords()) %>%     # remove stop words.
+  anti_join(remove_laughter)         # remove laugter fromthe data
+```
+
+
+```{r, echo=FALSE}  
+Juan_words <- mydata_talks%>%
+  filter(speaker == "Juan Enriquez") %>%    #filter the speaker from the data.
+  count(speaker, word)          # count words after tokenization by speaker.
+  
+  Juan_words%>%
+  slice_max(n, n=15) %>%                       #reduce the number of rows to the first 25 rows.
+  mutate(word = reorder(word, n)) %>%         # convert from character into factor to maintain order. so that it can be plotted in alphabetical orde and reoreder output.
+  ggplot(aes(n,word)) + geom_col(color="black", fill= "grey", linetype = 1.0) +xlab ("frequency")  +            ylab("words") + #plot n and word on the x- axis and y-axis.
+  labs(caption = "figure 1,Juan_words")
+```
+
+```{r, echo=FALSE}
+Uldus_words <- mydata_talks%>%      
+  filter(speaker == "Uldus Bakhtiozina") %>% # to filter the speaker words from the data
+  count(speaker, word, sort= T) %>% #to count each words and sort
+  slice_max(n, n=15)# slice the top 25 words in this data
+
+Uldus_words %>%
+  mutate(word = reorder(word, n)) %>%#convert from character into factor to maintain order. so that it can be plotted in alphabetical order
+  ggplot(aes(n,word)) + geom_col(color="black", fill = "grey", linetype = 1.0) +   #inserting n and word on the x-axis and y-axis) 
+  xlab("frequency") + ylab("word") +
+  labs(caption = "figure 2,Uldus") 
+```
+
+
+**Comparing speaker words using visualization**
+
+In this step, I went further to compare frequencies of the frequent words between the speakers as seen in figure 3. In plot be  in figure 3, the words closer to horizontal axis are words frequently used by Juan in her talks  while those words close to the vertical axis words frequently used by Uldus. The words that falls on the line shows the word used frequently by both speakers.
+
+```{r, echo=FALSE}
+dplyr::bind_rows(Juan_words,Uldus_words) %>%     #bind the two data into columns
+  group_by(word) %>%      #to group words 
+  filter(sum(n) >10) %>%# filter out words in the group, which sum is less than 15
+  ungroup() %>% #un-group words 
+  pivot_wider(names_from = "speaker", values_from = "n", values_fill = 0 ) %>% # display a wider data 
+  ggplot(aes(`Juan Enriquez`,`Uldus Bakhtiozina`)) +    #plotting each of the speakers on both x and y axis
+  geom_abline(color= 'blue', size = 1.2, alpha=0.9, lty= 3)+   #assigning color, and line size
+  geom_text_repel(aes(label = word), max.overlaps = 50)+      #assign overlaps
+  coord_cartesian(xlim = c(0, 50), ylim = c(0, 60)) +         #stipulating my plot size
+  labs(caption = "figure 3")                                  #labeling mydiagram
+```
+
+
+## Sentimental Analysis
+
+**Getting sentiments for each speaker**
+
+In other to properly analyse these words, there is a need to understand the sentiments of the words of each speaker talks. I used the 'nrc' sentiments in this case. This can be seen in figure 3, below.
+
+```{r, echo=FALSE}
+Mydata_talks<- ted_talks %>% 
+  # breakdown the words TED data to appear single in  rows
+  unnest_tokens(word, text)%>%  
+  # remove stop words 
+  anti_join(get_stopwords())%>%    
+   #filter the speaker from the data
+  filter(speaker %in% c("Juan Enriquez","Uldus Bakhtiozina")) %>% 
+  # to extract the nrc sentiments in the speaker words.
+  inner_join(get_sentiments("nrc")) %>%  
+  # count sentiments by speaker
+  count(speaker,sentiment) 
+ Mydata_talks%>%
+  pivot_wider(names_from = speaker, values_from = n, values_fill = 0)
+```
+
+
+**Visualizing sentiments and comparing sentimental words used by each speakers **
+
+Furthermore, to compare sentimental words contained in each speaker's, the plot shows words like trust,sadness, surprise, positive and negative was more for Jaun and less foe Uldus.
+
+
+```{r, echo=FALSE}
+Mydata_talks %>% 
+  # plot sentiment against n and also changing sentiment to factor.
+  ggplot(aes(factor(sentiment),n,fill= speaker)) +   
+  #plot bar chart
+  geom_bar(stat = "identity", position = "dodge")+ 
+  #select a color fill
+  scale_fill_brewer(palette ="Set3") + 
+  # change the angle of the word# color fill for each speaker
+  theme(axis.text.x = element_text(angle = 45)) +    
+  # override the label for both y an x axis and intorduce labels
+  xlab("Sentiments") +                          
+  ylab("Frequency") + labs(caption = "table 4") +
+  # to flip plot
+  coord_flip()  
+```
+
+**Percentage of positive words**
+
+The table below show the percentage of postive words by speaker.
+
+
+```{r, echo=FALSE}
+Mydata_talks %>%
+  #group each speaker
+  group_by(speaker) %>%
+  # find the total number of words for each speaker, and percentage of each sentiment
+  mutate(total = sum(n), percent = n / total) %>%
+  # filter the results for only positive sentiment
+  filter(sentiment == "positive") %>%
+  arrange(desc(percent))
+```
+
+
+**Calculating the Logs ratio for each speaker**
+
+Further analysis on the data to  calculate the log and odds ratio, relating to the sentiments for each speaker. This can be seen on the table below. 
+
+
+```{r, echo=FALSE}
+ speakers_ratio <- Mydata_talks %>%
+  pivot_wider(names_from = speaker, values_from = n, values_fill = 0) %>%
+  mutate(OR = dsEssex::compute_OR(`Juan Enriquez`,`Uldus Bakhtiozina`, correction = FALSE), log_OR = log(OR), sentiment = reorder(sentiment, log_OR))   #find log ratio filtering to the specific speakers
+```
+
+***Visualizing the Log_or against sentiment**
+
+In the plot chart below, sentiments like fear, disgust, anticipation were felt more by Juan while joy,anger surprise was felt more by Uldus.
+
+```{r, echo=FALSE}
+speakers_ratio %>%
+ggplot(aes(sentiment, log_OR, fill = log_OR < 0)) +     # plot sentiments against log_OR
+  geom_col(show.legend = FALSE) +
+  ylab("Log odds ratio") + ggtitle("The association between Log ratio  sentiments each the speakers") + #over ride labs and assigning title
+  coord_flip() + labs(caption = "figure 5") +
+  scale_fill_manual(name = "", values = c("blue", "yellow"))  #assigning color fill
+```
+
+
+## <span style="color: blue;">**Discussion**</span>
+
+Following the analysis of the two speakers, we can observe that Juan Enriquez had more words associated with positive words and negative words when compared to Uldus Bakhtiozina, the plots shows clearly that both speakers even though the spoke about using technology in their concepts used different words.
+
+The limitations I experienced during this analysis was that I am of the opinion that the data was biased as Uldus Bakhtiozina has more talks than Juan Enriquez and this influenced the result of the data. as Juan has more positive and negative words as seen in figure 4 above. After calculating the percentage Uldus has more percentage positive value (26.8%) while Juan is lesser (25.3%). While on the graph Juan has more readings of positive values than Uldus.
+
+In future future, the same analysis can be done for equal number of talks of both speakers so as to get the right analysis.
+
+
